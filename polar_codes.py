@@ -13,7 +13,7 @@ with open('reliability.txt', 'r') as file:
 
 # TO-DO : Take terminal inputs N = 2^n, k <= N
 # TO-DO : Put this all in a class object called PolarCode. Thus, to each N,k
-# we can associate a PolarCode object, precisely the (N,k) polar code.
+# we can associate a PolarCode object, precisely the (N,k) polar codes.
 # TO-DO : Add rate calculation 
 # TO-DO : Graph rate of success as a function of SNR_dB
 # TO-DO : Improve comments / documentations
@@ -298,7 +298,7 @@ main()
 #             sys.stdout = original_stdout
 
 
-# inp_files = [f"test_in_{i}.txt" for i in range(9)]
-# out_files = [f"test_out_{i}.txt" for i in range(9)]
+# inp_files = [f"test_in_{i}.txt" for i in range(10)]
+# out_files = [f"test_out_{i}.txt" for i in range(10)]
 
 # test(inp_files, out_files)
