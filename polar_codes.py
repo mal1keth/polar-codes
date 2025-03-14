@@ -1,304 +1,273 @@
-import random
-import math
-import numpy as np
-import sys
+from numpy import random, sqrt
 
+#----------------------------------------------------------------------------------------------------
+'''
+Reliability sequence: Precomputed permuted ordering of channels from worst to best upto N = 1024.
+Hardcoded for efficiency. 
+'''
+rel = [0,1,2,4,8,16,32,3,5,64,9,6,17,10,18,128,12,33,65,20,256,34,24,36,7,129,66,512,11,40,68,130,
+	19,13,48,14,72,257,21,132,35,258,26,513,80,37,25,22,136,260,264,38,514,96,67,41,144,28,69,42,
+	516,49,74,272,160,520,288,528,192,544,70,44,131,81,50,73,15,320,133,52,23,134,384,76,137,82,
+	56,27,97,39,259,84,138,145,261,29,43,98,515,88,140,30,146,71,262,265,161,576,45,100,640,51,
+	148,46,75,266,273,517,104,162,53,193,152,77,164,768,268,274,518,54,83,57,521,112,135,78,289,
+	194,85,276,522,58,168,139,99,86,60,280,89,290,529,524,196,141,101,147,176,142,530,321,31,200,
+	90,545,292,322,532,263,149,102,105,304,296,163,92,47,267,385,546,324,208,386,150,153,165,106,
+	55,328,536,577,548,113,154,79,269,108,578,224,166,519,552,195,270,641,523,275,580,291,59,169,
+	560,114,277,156,87,197,116,170,61,531,525,642,281,278,526,177,293,388,91,584,769,198,172,120,
+	201,336,62,282,143,103,178,294,93,644,202,592,323,392,297,770,107,180,151,209,284,648,94,204,
+	298,400,608,352,325,533,155,210,305,547,300,109,184,534,537,115,167,225,326,306,772,157,656,
+	329,110,117,212,171,776,330,226,549,538,387,308,216,416,271,279,158,337,550,672,118,332,579,
+	540,389,173,121,553,199,784,179,228,338,312,704,390,174,554,581,393,283,122,448,353,561,203,
+	63,340,394,527,582,556,181,295,285,232,124,205,182,643,562,286,585,299,354,211,401,185,396,
+	344,586,645,593,535,240,206,95,327,564,800,402,356,307,301,417,213,568,832,588,186,646,404,
+	227,896,594,418,302,649,771,360,539,111,331,214,309,188,449,217,408,609,596,551,650,229,159,
+	420,310,541,773,610,657,333,119,600,339,218,368,652,230,391,313,450,542,334,233,555,774,175,
+	123,658,612,341,777,220,314,424,395,673,583,355,287,183,234,125,557,660,616,342,316,241,778,
+	563,345,452,397,403,207,674,558,785,432,357,187,236,664,624,587,780,705,126,242,565,398,346,
+	456,358,405,303,569,244,595,189,566,676,361,706,589,215,786,647,348,419,406,464,680,801,362,
+	590,409,570,788,597,572,219,311,708,598,601,651,421,792,802,611,602,410,231,688,653,248,369,
+	190,364,654,659,335,480,315,221,370,613,422,425,451,614,543,235,412,343,372,775,317,222,426,
+	453,237,559,833,804,712,834,661,808,779,617,604,433,720,816,836,347,897,243,662,454,318,675,
+	618,898,781,376,428,665,736,567,840,625,238,359,457,399,787,591,678,434,677,349,245,458,666,
+	620,363,127,191,782,407,436,626,571,465,681,246,707,350,599,668,790,460,249,682,573,411,803,
+	789,709,365,440,628,689,374,423,466,793,250,371,481,574,413,603,366,468,655,900,805,615,684,
+	710,429,794,252,373,605,848,690,713,632,482,806,427,904,414,223,663,692,835,619,472,455,796,
+	809,714,721,837,716,864,810,606,912,722,696,377,435,817,319,621,812,484,430,838,667,488,239,
+	378,459,622,627,437,380,818,461,496,669,679,724,841,629,351,467,438,737,251,462,442,441,469,
+	247,683,842,738,899,670,783,849,820,728,928,791,367,901,630,685,844,633,711,253,691,824,902,
+	686,740,850,375,444,470,483,415,485,905,795,473,634,744,852,960,865,693,797,906,715,807,474,
+	636,694,254,717,575,913,798,811,379,697,431,607,489,866,723,486,908,718,813,476,856,839,725,
+	698,914,752,868,819,814,439,929,490,623,671,739,916,463,843,381,497,930,821,726,961,872,492,
+	631,729,700,443,741,845,920,382,822,851,730,498,880,742,445,471,635,932,687,903,825,500,846,
+	745,826,732,446,962,936,475,853,867,637,907,487,695,746,828,753,854,857,504,799,255,964,909,
+	719,477,915,638,748,944,869,491,699,754,858,478,968,383,910,815,976,870,917,727,493,873,701,
+	931,756,860,499,731,823,922,874,918,502,933,743,760,881,494,702,921,501,876,847,992,447,733,
+	827,934,882,937,963,747,505,855,924,734,829,965,938,884,506,749,945,966,755,859,940,830,911,
+	871,639,888,479,946,750,969,508,861,757,970,919,875,862,758,948,977,923,972,761,877,952,495,
+	703,935,978,883,762,503,925,878,735,993,885,939,994,980,926,764,941,967,886,831,947,507,889,
+	984,751,942,996,971,890,509,949,973,1000,892,950,863,759,1008,510,979,953,763,974,954,879,981,
+	982,927,995,765,956,887,985,997,986,943,891,998,766,511,988,1001,951,1002,893,975,894,1009,955,
+	1004,1010,957,983,958,987,1012,999,1016,767,989,1003,990,1005,959,1011,1013,895,1006,1014,1017,
+	1018,991,1020,1007,1015,1019,1021,1022,1023]
 
-#--------------------------- Reliability Sequence ---------------------------
-
-with open('reliability.txt', 'r') as file:
-    sequence = [int(x) for x in file.read().split(',')]
-
-#-------------------------------- Input Parameters --------------------------------
-
-# TO-DO : Take terminal inputs N = 2^n, k <= N
-# TO-DO : Put this all in a class object called PolarCode. Thus, to each N,k
-# we can associate a PolarCode object, precisely the (N,k) polar codes.
-# TO-DO : Add rate calculation 
-# TO-DO : Graph rate of success as a function of SNR_dB
-# TO-DO : Improve comments / documentations
-# TO-DO : Improve Testing
-N = 128
-k = 64
-SNR_dB = 5
-
-
-#--------------------------------- msg -> u ---------------------------------
-def src_vector(msg, N, k, Q):
-    u = [0] * N
-    for i in range(N - k, N):
-        u[Q[i]] = msg[i - (N - k)]
-    return u
-#-------------------------------- Correctness Checks --------------------------------
-# O(N^2)
-def encoding_check(u, N):
-
-    n = int(math.log(N, 2))
-    G = np.array([[1, 0], [1, 1]])
-    G_n = G
-
-    for i in range(1, n):
-        G_n = np.kron(G, G_n)
-
-    u_np = np.array(u)
-    return np.mod(u_np.dot(G_n), 2).tolist()
-
-#-------------------------------- Encoding --------------------------------
-
-# O(N log N)
-# Recursively encodes left and right halves of u to get u_1, u_2
-# Returns [u_1 ^ u_2, u_2]
-def encode(m, N, k, Q):
-    if(N == 1):
-        return m
-    #---- Head Recursion ----
-    # Depth-first / Post-order traversal
-    u_1 = encode(m[:N//2], N//2, k, Q)
-    u_2 = encode(m[N//2:], N//2, k, Q)
-
-    u = [0] * N
-    for i in range(N//2):
-        u[i] = u_1[i] ^ u_2[i]
-    for i in range(N//2):
-        u[i + N//2] = u_2[i]
-    return u
-
-
-#-------------------------------- Decoding --------------------------------
-
-#----- Decoding Helpers -----
-def sign(x):
-    return 1*(x >= 0) - 1*(x < 0)
-
-def f(r1, r2):
-    if(len(r1) != len(r2)):
-        raise ValueError("f: r1 and r2 must have the same length")
-    return [(sign(r1[i]) * sign(r2[i]) * min(abs(r1[i]), abs(r2[i]))) for i in range(len(r1))]
-
-def g(r1, r2, b):
-    if(len(r1) != len(r2)):
-        raise ValueError("g: r1 and r2 must have the same length")
-    if(len(b) != len(r1)):
-        raise ValueError("g: b and r1 must have the same length")
-    return [( (r2[i] + (1 - 2 * b[i]) * r1[i]) )  for i in range(len(r1))]
-
-#----------------------------
-
-
-# Don't need to maintain explicit L matrix 
-# Or node updates / ucap arrays since we do it recursively
-# O(N log N)
-def SCD(N, L, melted):
-    if(N == 1):
-        if(melted[0] == 1):
-            # Hard decision
-            return [1] if L[0] < 0 else [0]
-        else:
-            # Frozen bit, no information
-            return [0]
-    a = L[:N//2]
-    b = L[N//2: N]
-
-    #---- Head Recursion ----
-    # Post-order traversal
-    
-    u_left = SCD(N//2, f(a, b), melted[:N//2])
-    u_right = SCD(N//2, g(a, b, u_left), melted[N//2:])
-
-    u_hat = [0] * N
-    for i in range(N//2):
-        u_hat[i] = (u_left[i] + u_right[i]) % 2
-    for i in range(N//2):
-        u_hat[i + N//2] = u_right[i]
-    return u_hat
-
-def decode_codeword(u, N, melted):
-    if(N == 1):
-        return u
-    # Post-order traversal
-    u_xor = decode_codeword(u[:N//2], N//2, melted[:N//2])
-    u_right = decode_codeword(u[N//2:], N//2, melted[N//2:])
-    u_left = [a ^ b for a, b in zip(u_xor, u_right)]
-    return u_left + u_right
-
-#-------------------------------- Channel Modelling --------------------------------
-# Sends 0 to 1 and 1 to -1
-def BPSK(y):
-    return [1 if y[i] == 0 else -1 for i in range(len(y))]
-
-# Scavenged from existing github implementations
-# Adds AWGN noise to BPSK symbols
-def AWGN(symbols, SNR_dB):
-    
-    # Convert SNR from dB to linear scale
-    SNR_linear = 10**(SNR_dB/10)
-    
-    # Note: 
-    # sigma_2 = noise variance (sigma^2)
-    # For BPSK, signal power is 1, so sigma^2 = 1/SNR
-    sigma_2 = 1/SNR_linear
-    
-    noise = np.random.normal(0, np.sqrt(sigma_2), len(symbols))
-    noisy_symbols = [symbols[i] + noise[i] for i in range(len(symbols))]
-    
-    return noisy_symbols, sigma_2
-
-
-# Computes log-likelihood ratios from (noisy) BPSK symbols
-# sigma_2: noise variance
-def LLR(y, sigma_2):
-    r = [2*symbol/sigma_2 for symbol in y]
-    return r
-
-
-#-------------------------------- Testing --------------------------------
-
-def main():
-    # ---- Source Message ----
-    msg = [random.randint(0, 1) for _ in range(k)]
-    # Part of reliability sequence we use
-    Q = [i for i in sequence if i < N]
-    F = Q[:N-k]
-    
-    # ---- Encoding --- 
-    u = src_vector(msg, N, k, Q)
-    y = encode(u, N, k, Q)
-    y_brute = encoding_check(u, N)
-    
-
-    # ---- Channel Transmission ----
-    bpsk_symbols = BPSK(y) 
-    noisy_symbols, sigma_2 = AWGN(bpsk_symbols, SNR_dB)
-    llr_values = LLR(noisy_symbols, sigma_2)
-    melted = src_vector([1] * k, N, k, Q)
-
-    # ---- Decoding ----
-
-    # This gives us back the original codeword (if successful)
-    z = SCD(N, llr_values, melted)
-
-    # Returns original src_vector
-    decoded_src = decode_codeword(z, N, melted)
-
-    # Reconstructing original message from decoded codeword
-    d_msg = [0] * k
-    for i in range(N-k, N):
-        d_msg[i - (N-k)] = decoded_src[Q[i]]
-
-
-    max_label_len = 36
-    print("---------------------------------------Global Parameters---------------------------------------")
-    print(f"{'N: '.ljust(max_label_len)}", N)
-    print(f"{'k: '.ljust(max_label_len)}", k)
-    print(f"{'SNR_dB: '.ljust(max_label_len)}", SNR_dB)
-
-    print("---------------------------------------Setup---------------------------------------")
-    print(f"{'Subsequence Q: '.ljust(max_label_len)}", Q)
-    print(f"{'Subsequence F: '.ljust(max_label_len)}", F)
-    
-    print(f"{'msg: '.ljust(max_label_len)}", "".join(str(x) for x in msg), end="\n\n")
-
-    print("---------------------------------------Encoding---------------------------------------")
-    print(f"{'Source vector u: '.ljust(max_label_len)}", u, end="\n\n")
-    print(f"{'Encoded vector y: '.ljust(max_label_len)}", y, end="\n\n")
-    print(f"{'Brute force Encoding y_prime: '.ljust(max_label_len)}", y_brute, end="\n\n")
-    print(f"{'Encoding correct? (y == y_prime): '.ljust(max_label_len)}", y == y_brute, end="\n\n")
-    
-    print("---------------------------------------Channel Transmission---------------------------------------")
-    print(f"{'Used Indices: '.ljust(max_label_len)}", melted, end="\n\n")
-    print(f"{'BPSK symbols: '.ljust(max_label_len)}", bpsk_symbols, end="\n\n")
-    print(f"{'Noisy symbols: '.ljust(max_label_len)}", noisy_symbols, end="\n\n")
-    print(f"{'LLR values: '.ljust(max_label_len)}", llr_values, end="\n\n")
-    
-    print("---------------------------------------Decoding---------------------------------------")
-    print(f"{'Decoded noisy symbols: '.ljust(max_label_len)}", z, end="\n\n")
-    print(f"{'Decoding correct? ( y == z)?: '.ljust(max_label_len)}", z == y, end="\n\n")
-    
-    print("---------------------------------------Reconstruction------------------------------------------")
-    print(f"{'Decoded src_vector: '.ljust(max_label_len)}", decoded_src, end="\n\n")
-    print(f"{'msg: '.ljust(max_label_len)}", "".join(str(x) for x in d_msg), end="\n\n")
-    print(f"{'Final message == original message?: '.ljust(max_label_len)}", d_msg == msg, end="\n\n")
-
-main()
-
-
-# def test(input_file, output_file):
-#     # Read input parameters from file
-#     for (inp, out) in zip(input_file, output_file):
-#         with open(inp, 'r') as f:
-#             N = int(f.readline())
-#             k = int(f.readline())
-#             SNR_dB = float(f.readline())
-#             msg = [int(x) for x in f.readline().strip()]
-
-#         # Redirect print output to file
-#         with open(out, 'w') as f:
-#             # Store original stdout
-#             original_stdout = sys.stdout
-#             sys.stdout = f
-
-#             Q = [i for i in sequence if i < N]
-#             F = Q[:N-k]
+#----------------------------------------------------------------------------------------------------
+#                                       Polar Code Class
+#----------------------------------------------------------------------------------------------------
+class PolarCode:
+    '''
+    Instantiates the (N,k) Polar Code object.
+    Args :
+        N -> Block length
+        k -> Message length
+        SNR_dB -> Signal to Noise Ratio in dB
+    '''
+    def __init__(self, N, k, SNR_dB = 1):
+        self.N = N
+        self.k = k
+        self.SNR_dB = SNR_dB
         
-#             # ---- Encoding --- 
-#             u = src_vector(msg, N, k, Q)
-#             y = encode(u, N, k, Q)
-#             y_brute = encoding_check(u, N)
 
-#             # ---- Channel Transmission ----
-#             bpsk_symbols = BPSK(y) 
-#             noisy_symbols, sigma_2 = AWGN(bpsk_symbols, SNR_dB)
-#             llr_values = LLR(noisy_symbols, sigma_2)
-#             melted = src_vector([1] * k, N, k, Q)
+        self.Q = [i for i in rel if i < N]
+        self.melted= [0] * N
 
-#             # ---- Decoding ----
-#             z = SCD(N, llr_values, melted)
-#             decoded_src = decode_codeword(z, N, melted)
+        for i in range(N-k, N):
+            self.melted[self.Q[i]] = 1
 
-#             # Reconstructing original message
-#             d_msg = [0] * k
-#             for i in range(N-k, N):
-#                 d_msg[i - (N-k)] = decoded_src[Q[i]]
+        self.codes = {}
+    #-------------------------------- Encoding  --------------------------------
 
-#             # Print results (same as in main())
-#             max_label_len = 36
+    #--------------------------
+    '''
+    Assigns the best k bits of the N bit channel as message bits. Rest are frozen.
+    Args : msg -> length k list of 0s and 1s
+    Returns : u -> length N list of 0s and 1s
+    TC : O(N), SC : O(N)
+    '''
+    def src_vector(self, msg):
+        u = [0] * self.N
+        for i in range(self.N - self.k, self.N):
+            u[self.Q[i]] = msg[i - (self.N - self.k)]
+        return u
+    #---------------- Polar Transform ---------------
+    '''
+    Recursively computes the polar transform on the input vector u
+    Args : u -> length N list of 0s and 1s, n -> len(m)
+    Returns : y -> length n list of 0s and 1s
+    TC : O(N log N), SC : O(N log N)
+    '''
+    def polar_transform(self, u, n):
+        if(n == 1):
+            return u
+        
+        # Post-order traversal
+        y_1 = self.polar_transform(u[:n//2], n//2)
+        y_2 = self.polar_transform(u[n//2:], n//2)
 
-#             max_label_len = 36
-#             print("---------------------------------------Global Parameters---------------------------------------")
-#             print(f"{'N: '.ljust(max_label_len)}", N)
-#             print(f"{'k: '.ljust(max_label_len)}", k)
-#             print(f"{'SNR_dB: '.ljust(max_label_len)}", SNR_dB)
+        y = [0] * n
+        for i in range(n//2):
+            y[i] = y_1[i] ^ y_2[i]
+        for i in range(n//2):
+            y[i + n//2] = y_2[i]
+        return y
+    #--------------------------
+    '''
+    Converts length k message into length N codeword
+    Args : msg -> length k list of 0s and 1s
+    Returns : y -> length N list of 0s and 1s
+    TC : O(N log N), SC : O(N log N)
+    '''
+    def encode_msg(self, msg):
+        u = self.src_vector(msg)
+        y = self.polar_transform(u, self.N)
+        self.codes[''.join(str(x) for x in msg)] = ''.join(str(x) for x in y)
+        return y
+    
+    #-------------------------------- Channel Transformations  --------------------------------
+    '''
+    Converts code symbols into BPSK Symbols. 0 -> 1, 1 -> -1
+    Args : y -> length N list of 0s and 1s
+    Returns : symbols -> length N list of 1s and -1s
+    TC : O(N), SC : O(N)
+    '''
+    def BPSK(self, y):
+        return [1 if y[i] == 0 else -1 for i in range(len(y))]
+    #--------------------------
+    '''
+    Adds AWGN of given SNR_dB to the input symbols
+    Args : symbols -> length N list of 1s and -1s, SNR_dB -> Signal to Noise Ratio in dB
+    Returns : noisy_symbols -> length N list of real numbers, sigma_2 -> variance of noise
+    TC : O(N), SC : O(N)
+    '''
+    def AWGN(self, symbols, SNR_dB):
+        SNR_linear = 10**(SNR_dB/10)
+        sigma_2 = 1/SNR_linear
 
-#             print("---------------------------------------Setup---------------------------------------")
-#             print(f"{'Subsequence Q: '.ljust(max_label_len)}", Q)
-#             print(f"{'Subsequence F: '.ljust(max_label_len)}", F)
-            
-#             print(f"{'msg: '.ljust(max_label_len)}", "".join(str(x) for x in msg), end="\n\n")
+        noise = random.normal(0, sqrt(sigma_2), len(symbols))
+        noisy_symbols = [symbols[i] + noise[i] for i in range(len(symbols))]
 
-#             print("---------------------------------------Encoding---------------------------------------")
-#             print(f"{'Source vector u: '.ljust(max_label_len)}", u, end="\n\n")
-#             print(f"{'Encoded vector y: '.ljust(max_label_len)}", y, end="\n\n")
-#             print(f"{'Brute force Encoding y_prime: '.ljust(max_label_len)}", y_brute, end="\n\n")
-#             print(f"{'Encoding correct? (y == y_prime): '.ljust(max_label_len)}", y == y_brute, end="\n\n")
-            
-#             print("---------------------------------------Channel Transmission---------------------------------------")
-#             print(f"{'Used Indices: '.ljust(max_label_len)}", melted, end="\n\n")
-#             print(f"{'BPSK symbols: '.ljust(max_label_len)}", bpsk_symbols, end="\n\n")
-#             print(f"{'Noisy symbols: '.ljust(max_label_len)}", noisy_symbols, end="\n\n")
-#             print(f"{'LLR values: '.ljust(max_label_len)}", llr_values, end="\n\n")
-            
-#             print("---------------------------------------Decoding---------------------------------------")
-#             print(f"{'Decoded noisy symbols: '.ljust(max_label_len)}", z, end="\n\n")
-#             print(f"{'Decoding correct? ( y == z)?: '.ljust(max_label_len)}", z == y, end="\n\n")
-            
-#             print("---------------------------------------Reconstruction------------------------------------------")
-#             print(f"{'Decoded src_vector: '.ljust(max_label_len)}", decoded_src, end="\n\n")
-#             print(f"{'msg: '.ljust(max_label_len)}", "".join(str(x) for x in d_msg), end="\n\n")
-#             print(f"{'Final message == original message?: '.ljust(max_label_len)}", d_msg == msg, end="\n\n")
-#             sys.stdout = original_stdout
+        return noisy_symbols, sigma_2
+    #--------------------------
+    '''
+    Converts Noisy BPSK symbols into LLR values
+    Args : noisy_symbols -> length N list of real numbers, sigma_2 -> variance of noise
+    Returns : LLRs -> length N list of real numbers
+    TC : O(N), SC : O(N)
+    '''
+    def LLR(self, y, sigma_2):
+        r = [2*symbol/sigma_2 for symbol in y]
+        return r
+    #-------------------------------- Decoding Helpers --------------------------------
+    '''
+    Returns the sign of the input value
+    Args : x -> real number 
+    Returns : b \in {-1, 1}
+    TC : O(1), SC : O(1)
+    '''
+    def sign(self, x):
+        return 1*(x >= 0) - 1*(x < 0)
+    #--------------------------
+    '''
+    Assigns the product of the signs to the lowest absolute value of the input values
+    Args : r1 -> length N list of real numbers, r2 -> length N list of real numbers
+    Returns : product -> length N list of real numbers
+    TC : O(N), SC : O(N)
+    '''
+    def f(self, r1, r2):
+        if(len(r1) != len(r2)):
+            raise ValueError("f: r1 and r2 must have the same length")
+        return [(self.sign(r1[i]) * self.sign(r2[i]) * min(abs(r1[i]), abs(r2[i]))) for i in range(len(r1))]
+    #--------------------------
+    '''
+    Computes r1 + r2 if b = 0, else r1 - r2
+    Args : r1 -> length N list of real numbers, r2 -> length N list of real numbers, b -> length N list of 0s and 1s
+    Returns : product -> length N list of real numbers
+    TC : O(N), SC : O(N)
+    '''
+    def g(self, r1, r2, b):
+        if(len(r1) != len(r2)):
+            raise ValueError("g: r1 and r2 must have the same length")
+        if(len(b) != len(r1)):
+            raise ValueError("g: b and r1 must have the same length")
+        return [( (r2[i] + (1 - 2 * b[i]) * r1[i]) )  for i in range(len(r1))]
 
+    #-------------------------------- Successive Cancellation Decoding --------------------------------
+    '''
+    Recursively transforms LLR values of (possible) noisy symbols to a polar codeword
+    Args : n -> len(L) == N, L -> length N list of real numbers, melted -> length N list of 0s and 1s
+    Returns : u_hat -> length N list of 0s and 1s
+    TC : O(N log N), SC : O(N log N)
+    '''
+    def SCD(self, n, L, melted):
+        if(n == 1):
+            if(melted[0] == 1):
+                # Hard decision
+                return [1] if L[0] < 0 else [0]
+            else:
+                # Frozen bit, no information
+                return [0]
+        a = L[:n//2]
+        b = L[n//2: n]
 
-# inp_files = [f"test_in_{i}.txt" for i in range(10)]
-# out_files = [f"test_out_{i}.txt" for i in range(10)]
+        # ---- Recurse ----
+        u_left = self.SCD(n//2, self.f(a, b), melted[:n//2])
+        u_right = self.SCD(n//2, self.g(a, b, u_left), melted[n//2:])
 
-# test(inp_files, out_files)
+        # ---- Combine ----
+        u_hat = [u_left[i] ^ u_right[i] for i in range(n//2)] + u_right
+        return u_hat
+    
+    #--------------------------
+    '''
+    Recursively transforms a polar codeword into a vector where the k best bits are the message bits
+    Args : n -> len(u) == N, u -> length N list of 0s and 1s, melted -> length N list of 0s and 1s
+    Returns : u_hat -> length N list of 0s and 1s
+    TC : O(N log N), SC : O(N log N)
+    '''
+    def decode_codeword(self, u, n, melted):
+        if(n == 1):
+            return u
+        # ---- Recurse ----
+        u_xor = self.decode_codeword(u[:n//2], n//2, melted[:n//2])
+        u_right = self.decode_codeword(u[n//2:], n//2, melted[n//2:])
+
+        # ---- Combine ----
+        u_left = [a ^ b for a, b in zip(u_xor, u_right)]
+        return u_left + u_right
+    #--------------------------
+    '''
+    Applies the channel transformation to the codeword to get noisy symbols. 
+    Computes LLRs of the noisy symbols.
+    Applies SCD to the LLRs to get a polar codeword.
+    Decodes the polar codeword into a message
+    Args : y -> length N list of 0s and 1s, SNR_dB -> (optional) Signal to Noise Ratio in dB
+    Returns : d_msg -> length k list of 0s and 1s, correctness -> boolean
+    TC : O(N log N), SC : O(N log N)
+    '''
+    def decode_msg(self, y, SNR_dB = -1):
+
+        if(SNR_dB != -1):
+            self.SNR_dB = SNR_dB
+        
+        #---- Channel Transformations ----
+        sym, sigma_2 = self.AWGN(self.BPSK(y), self.SNR_dB)
+        llr = self.LLR(sym, sigma_2)
+
+        #---- SCD ----
+        y_prime = self.SCD(self.N, llr, self.melted)
+
+        #---- Codeword Decoding ----
+        decoded_u = self.decode_codeword(y_prime, self.N, self.melted)
+        
+        #---- Message Reconstruction ----
+        d_msg = [0] * self.k
+        for i in range(self.N - self.k, self.N):
+            d_msg[i - (self.N - self.k)] = decoded_u[self.Q[i]]
+        d_msg = ''.join(str(x) for x in d_msg)
+
+        correctness = True
+        if(d_msg not in self.codes or self.codes[d_msg] != ''.join(str(x) for x in y)):
+            correctness = False
+        
+        return d_msg, correctness
+#----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
